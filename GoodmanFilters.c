@@ -33,8 +33,9 @@ typedef struct Stencil {
 
 ////////////////////////////////////////////////////////////////////////////////
 //FORWARD DECLARATIONS
+void makeCircle(int xc, int yc, int r, Pixel** pArr, int width, int height);
+Pixel* drawPixel(int x, int y, Pixel** pArr, int width, int height);
 Pixel* make_blurry_pixel(Stencil* stencil, Pixel* pixel, int numPixels);
-
 ////////////////////////////////////////////////////////////////////////////////
 //MAIN PROGRAM CODE
 int main(int argc, char* argv[]){
@@ -396,14 +397,56 @@ int main(int argc, char* argv[]){
                 }
             }
         }
+        free(pixel);
+        free(stencil);
     }
-    //apply a Swiss cheese filter
+        //apply a Swiss cheese filter
     else{
+        //apply yellow tint
+        for(i = 0; i < height; i++)
+            for(j = 0; j < width; j++){
+                if(inputArr[i][j].red + 50 > 255)
+                    outputArr[i][j].red = 255;
+                else outputArr[i][j].red = inputArr[i][j].red + 50;
+                if(inputArr[i][j].green + 50 > 255)
+                    outputArr[i][j].green = 255;
+                else outputArr[i][j].green = inputArr[i][j].green + 50;
+                outputArr[i][j].blue = inputArr[i][j].blue;
+            }
         //determine smallest dimension of input
         int smallest = 0;
         if(width < height)
             smallest = width;
         else smallest = height;
+        //calculate hole data
+        int numHoles = smallest / 10;
+        int averageRadius = numHoles;
+        int largeRadius = averageRadius + averageRadius / 2;
+        int smallRadius = averageRadius - averageRadius / 2;
+        //draw average holes (50% of holes)
+        srand(time(0));
+        for(i = 0; i < numHoles / 2; i++) {
+            int xc = rand() % width;
+            int yc = rand() % height;
+            int r = averageRadius;
+            makeCircle(xc, yc, r, outputArr, width, height);
+        }
+        //draw large holes (25% of holes)
+        srand(time(0));
+        for(i = 0; i < numHoles / 4; i++) {
+            int xc = rand() % width;
+            int yc = rand() % height;
+            int r = largeRadius;
+            makeCircle(xc, yc, r, outputArr, width, height);
+        }
+        //draw small holes (25% of holes)
+        srand(time(0));
+        for(i = 0; i < numHoles / 4; i++) {
+            int xc = rand() % width;
+            int yc = rand() % height;
+            int r = smallRadius;
+            makeCircle(xc, yc, r, outputArr, width, height);
+        }
     }
     //produce an output file
     if(oFlag == 1){
@@ -420,24 +463,36 @@ int main(int argc, char* argv[]){
         free(outputArr);
         free(input_bmp_header);
         free(input_dib_header);
-        free(pixel);
-        free(stencil);
         printf("Output: %s\n", output_file);
     }
     return 0;
 }
 
+void makeCircle(int xc, int yc, int r, Pixel** pArr, int width, int height) {
+    int y, x;
+    for(y = -r; y <= r; y++)
+        for(x =- r; x <= r; x++)
+            if(x * x + y * y <= r * r)
+                drawPixel(xc + x, yc + y, pArr, width, height);
+}
+
+Pixel* drawPixel(int x, int y, Pixel** pArr, int width, int height){
+    if(x >= 0 && x < width && y >= 0 && y < height){
+        pArr[x][y].red = 0;
+        pArr[x][y].green = 0;
+        pArr[x][y].blue = 0;
+    }
+}
 Pixel* make_blurry_pixel(Stencil* stencil, Pixel* pixel, int numPixels) {
     int i, j, rSum = 0, gSum = 0, bSum = 0;
-    for(i = 0; i < 2; i++)
-        for(j = 0; j < 2; j++){
+    for(i = 0; i < 3; i++)
+        for(j = 0; j < 3; j++){
             rSum += stencil->pixel[i][j].red;
             gSum += stencil->pixel[i][j].green;
             bSum += stencil->pixel[i][j].blue;
         }
-
-    pixel->red = rSum / (int)(sqrt(numPixels) + 1);
-    pixel->green = gSum / (int)(sqrt(numPixels) + 1);
-    pixel->blue = bSum / (int)(sqrt(numPixels) + 1);
+    pixel->red = rSum / numPixels;
+    pixel->green = gSum / numPixels;
+    pixel->blue = bSum / numPixels;
     return pixel;
 }
