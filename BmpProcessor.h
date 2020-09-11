@@ -4,21 +4,22 @@
 * Completion time: 5 minutes
 *
 * @author Vatrcia Edgar, Xiangwei Zheng, Ruben Acuna
-* @version 1.0
+* @version 1.1
+* (typedefs added by Goodman)
 */
 
 #include <stdio.h>
 #include "PixelProcessor.h"
 
-struct BMP_Header {
+typedef struct BMP_Header {
 	char signature[2];		//ID field
 	int size;			//Size of the BMP file
 	short reserved1;		//Application specific
 	short reserved2;		//Application specific
 	int offset_pixel_array;  //Offset where the pixel array (bitmap data) can be found
-};
+}BMP_Header;
 
-struct DIB_Header{
+typedef struct DIB_Header{
 	int size; //Size of this header
 	int width; //width of bitmap in pixels
 	int height; //height of bitmapin pixels
@@ -30,7 +31,7 @@ struct DIB_Header{
 	int vertRes; //	the vertical resolution of the image. (pixel per meter, signed integer)
 	int colorNum; // the number of colors in the color palette
 	int importantColorNum; // the number of important colors used
-};
+}DIB_Header;
 
 /**
  * read BMP header of a file. Useful for converting files from PPM to BMP.
