@@ -44,7 +44,8 @@ int main(int argc, char* argv[]){
     DIB_Header* input_dib_header;
     BMP_Header* output_bmp_header;
     DIB_Header* output_dib_header;
-    Pixel** inputArr;
+    Pixel **inputArr, **outputArr, *pixel;
+    Stencil* stencil;
     while((opt = getopt(argc, argv, "i:o:f:")) != -1)
         //parse command line arguments
         switch(opt){
@@ -122,6 +123,10 @@ int main(int argc, char* argv[]){
             for(i = 0; i < input_dib_header->width; i++){
                 inputArr[i] = (Pixel*) malloc(input_dib_header->height * sizeof(Pixel));
             }
+            outputArr = (Pixel**)malloc(input_dib_header->width * sizeof(Pixel*));
+            for(i = 0; i < input_dib_header->width; i++){
+                outputArr[i] = (Pixel*) malloc(input_dib_header->height * sizeof(Pixel));
+            }
             readPixelsBMP(iFile, inputArr, input_dib_header->width, input_dib_header->height);
             fclose(iFile);
         }
@@ -142,8 +147,8 @@ int main(int argc, char* argv[]){
         //calculate size of chunks
         //int chunk = width / THREAD_COUNT;
         //create a stencil
-        Stencil* stencil = (Stencil*)malloc(sizeof(Stencil));
-        Pixel* pixel = (Pixel*)malloc(sizeof(Pixel));
+        stencil = (Stencil*)malloc(sizeof(Stencil));
+        pixel = (Pixel*)malloc(sizeof(Pixel));
         for(i = 0; i < height; i++){
             for(j = 0; j < width; j++){
                 //if pixel is upper left corner
@@ -170,7 +175,7 @@ int main(int argc, char* argv[]){
                     stencil->pixel[2][2].red = inputArr[i + 1][j + 1].red;
                     stencil->pixel[2][2].green = inputArr[i + 1][j + 1].green;
                     stencil->pixel[2][2].blue = inputArr[i + 1][j + 1].blue;
-                    inputArr[0][0] = *make_blurry_pixel(stencil, pixel, 4);
+                    outputArr[0][0] = *make_blurry_pixel(stencil, pixel, 4);
                 }
                 //if pixel is upper right corner
                 if(i == 0 && j == width - 1){
@@ -196,7 +201,7 @@ int main(int argc, char* argv[]){
                     stencil->pixel[2][1].red = inputArr[i + 1][j].red;
                     stencil->pixel[2][1].green = inputArr[i + 1][j].green;
                     stencil->pixel[2][1].blue = inputArr[i + 1][j].blue;
-                    inputArr[0][width - 1] = *make_blurry_pixel(stencil, pixel, 4);
+                    outputArr[0][width - 1] = *make_blurry_pixel(stencil, pixel, 4);
                 }
                 //if pixel is bottom left corner
                 if(i == height - 1 && j == 0){
@@ -222,7 +227,7 @@ int main(int argc, char* argv[]){
                     stencil->pixel[1][2].red = inputArr[i][j + 1].red;
                     stencil->pixel[1][2].green = inputArr[i][j + 1].green;
                     stencil->pixel[1][2].blue = inputArr[i][j + 1].blue;
-                    inputArr[height - 1][0] = *make_blurry_pixel(stencil, pixel, 4);
+                    outputArr[height - 1][0] = *make_blurry_pixel(stencil, pixel, 4);
                 }
                 //if pixel is bottom right corner
                 if(i == height - 1 && j == width - 1){
@@ -248,7 +253,7 @@ int main(int argc, char* argv[]){
                     stencil->pixel[1][1].red = inputArr[i][j].red;
                     stencil->pixel[1][1].green = inputArr[i][j].green;
                     stencil->pixel[1][1].blue = inputArr[i][j].blue;
-                    inputArr[height - 1][width - 1] = *make_blurry_pixel(stencil, pixel, 4);
+                    outputArr[height - 1][width - 1] = *make_blurry_pixel(stencil, pixel, 4);
                 }
                 //if pixel is on the left edge
                 if(i != 0 && i != height - 1 && j == 0) {
@@ -275,7 +280,7 @@ int main(int argc, char* argv[]){
                     stencil->pixel[2][2].red = inputArr[i + 1][j + 1].red;
                     stencil->pixel[2][2].green = inputArr[i + 1][j + 1].green;
                     stencil->pixel[2][2].blue = inputArr[i + 1][j + 1].blue;
-                    inputArr[i][0] = *make_blurry_pixel(stencil, pixel, 6);
+                    outputArr[i][0] = *make_blurry_pixel(stencil, pixel, 6);
                 }
                 //if pixel is on the right edge
                 if(i != 0 && i != height - 1 && j == width - 1) {
@@ -302,7 +307,7 @@ int main(int argc, char* argv[]){
                     stencil->pixel[2][1].red = inputArr[i + 1][j].red;
                     stencil->pixel[2][1].green = inputArr[i + 1][j].green;
                     stencil->pixel[2][1].blue = inputArr[i + 1][j].blue;
-                    inputArr[i][width - 1] = *make_blurry_pixel(stencil, pixel, 6);
+                    outputArr[i][width - 1] = *make_blurry_pixel(stencil, pixel, 6);
                 }
                 //if pixel is on upper edge
                 if(i == 0 && j != 0 && j != width - 1) {
@@ -329,7 +334,7 @@ int main(int argc, char* argv[]){
                     stencil->pixel[2][2].red = inputArr[i + 1][j + 1].red;
                     stencil->pixel[2][2].green = inputArr[i + 1][j + 1].green;
                     stencil->pixel[2][2].blue = inputArr[i + 1][j + 1].blue;
-                    inputArr[0][j] = *make_blurry_pixel(stencil, pixel, 6);
+                    outputArr[0][j] = *make_blurry_pixel(stencil, pixel, 6);
                 }
                 //if pixel is on bottom edge
                 if(i == height - 1 && j != 0 && j != width - 1) {
@@ -356,7 +361,7 @@ int main(int argc, char* argv[]){
                     stencil->pixel[1][2].red = inputArr[i][j + 1].red;
                     stencil->pixel[1][2].green = inputArr[i][j + 1].green;
                     stencil->pixel[1][2].blue = inputArr[i][j + 1].blue;
-                    inputArr[height - 1][j] = *make_blurry_pixel(stencil, pixel, 6);
+                    outputArr[height - 1][j] = *make_blurry_pixel(stencil, pixel, 6);
                 }
                 //if pixel is not on border
                 if(i != 0 && i != height - 1 && j != 0 && j != width - 1) {
@@ -387,7 +392,7 @@ int main(int argc, char* argv[]){
                     stencil->pixel[2][2].red = inputArr[i + 1][j + 1].red;
                     stencil->pixel[2][2].green = inputArr[i + 1][j + 1].green;
                     stencil->pixel[2][2].blue = inputArr[i + 1][j + 1].blue;
-                    inputArr[i][j] = *make_blurry_pixel(stencil, pixel, 9);
+                    outputArr[i][j] = *make_blurry_pixel(stencil, pixel, 9);
                 }
             }
         }
@@ -405,23 +410,24 @@ int main(int argc, char* argv[]){
         FILE* oFile = fopen(output_file, "wb");
         writeBMPHeader(oFile, input_bmp_header);
         writeDIBHeader(oFile, input_dib_header);
-        writePixelsBMP(oFile, inputArr, input_dib_header->width, input_dib_header->height);
+        writePixelsBMP(oFile, outputArr, input_dib_header->width, input_dib_header->height);
         fclose(oFile);
         for(i = 0; i < input_dib_header->width; i++)
             free(inputArr[i]);
         free(inputArr);
+        for(i = 0; i < input_dib_header->width; i++)
+            free(outputArr[i]);
+        free(outputArr);
         free(input_bmp_header);
         free(input_dib_header);
+        free(pixel);
+        free(stencil);
         printf("Output: %s\n", output_file);
     }
     return 0;
 }
 
 Pixel* make_blurry_pixel(Stencil* stencil, Pixel* pixel, int numPixels) {
-    printf("num pixels: %d\n", numPixels);
-    printf("red: %d\n", pixel->red);
-    printf("green: %d\n", pixel->green);
-    printf("blue: %d\n", pixel->blue);
     int i, j, rSum = 0, gSum = 0, bSum = 0;
     for(i = 0; i < 2; i++)
         for(j = 0; j < 2; j++){
@@ -430,12 +436,8 @@ Pixel* make_blurry_pixel(Stencil* stencil, Pixel* pixel, int numPixels) {
             bSum += stencil->pixel[i][j].blue;
         }
 
-    pixel->red = rSum / numPixels;
-    pixel->green = gSum / numPixels;
-    pixel->blue = bSum / numPixels;
-    printf("after\n");
-    printf("red: %d\n", pixel->red);
-    printf("green: %d\n", pixel->green);
-    printf("blue: %d\n", pixel->blue);
+    pixel->red = rSum / (int)(sqrt(numPixels) + 1);
+    pixel->green = gSum / (int)(sqrt(numPixels) + 1);
+    pixel->blue = bSum / (int)(sqrt(numPixels) + 1);
     return pixel;
 }
