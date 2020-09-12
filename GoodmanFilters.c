@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
-#include <math.h>
 #include <unistd.h>
 //UNCOMMENT BELOW LINE IF USING SER334 LIBRARY/OBJECT FOR BMP SUPPORT
 #include "BmpProcessor.h"
@@ -33,17 +32,18 @@ typedef struct Stencil {
 
 ////////////////////////////////////////////////////////////////////////////////
 //GLOBAL VARIABLES
-int height, width, chunk;
+int height, width;
 Pixel **inputArr, **outputArr, *pixel;
 Stencil* stencil;
 
 ////////////////////////////////////////////////////////////////////////////////
 //FORWARD DECLARATIONS
+void sigint_target(int signum);
 void* blur_runner(void* param);
 void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** inputArr, Pixel** outputArr, int chunk);
 void* cheese_runner(void* param);
 void cheese_filter(int height, int width, Pixel** inputArr, Pixel** outputArr, int chunk);
-void makeCircle(int xc, int yc, int r, Pixel** pArr, int width, int height, int left_offset, int right_offset);
+void makeCircle(int xc, int yc, int r, Pixel** pArr, int width, int height);
 void drawPixel(int x, int y, Pixel** pArr, int width, int height);
 Pixel* make_blurry_pixel(Stencil* stencil, Pixel* pixel, int numPixels);
 
@@ -161,13 +161,46 @@ int main(int argc, char* argv[]){
             pthread_create(&tid, &attr, blur_runner, &i);
             pthread_join(tid, NULL);
         }
-    else
+    else {
         //create Swiss cheese threads
-        for(i = 0; i < THREAD_COUNT; i++) {
+        for (i = 0; i < THREAD_COUNT; i++) {
             pthread_attr_init(&attr);
             pthread_create(&tid, &attr, cheese_runner, &i);
             pthread_join(tid, NULL);
         }
+        //determine smallest dimension of input
+        int smallest = 0;
+        if(width < height)
+            smallest = width;
+        else smallest = height;
+        //calculate hole data
+        int numHoles = smallest / 10;
+        int averageRadius = numHoles;
+        int largeRadius = averageRadius + averageRadius / 2;
+        int smallRadius = averageRadius - averageRadius / 2;
+        srand(time(0));
+        //draw average holes (50% of holes)
+        for(i = 0; i < numHoles / 2; i++) {
+            int xc = rand() % width;
+            int yc = rand() % height;
+            int r = averageRadius;
+            makeCircle(xc, yc, r, outputArr, width, height);
+        }
+        //draw large holes (25% of holes)
+        for(i = 0; i < numHoles / 4; i++) {
+            int xc = rand() % width;
+            int yc = rand() % height;
+            int r = largeRadius;
+            makeCircle(xc, yc, r, outputArr, width, height);
+        }
+        //draw small holes (25% of holes)
+        for(i = 0; i < numHoles / 4; i++) {
+            int xc = rand() % width;
+            int yc = rand() % height;
+            int r = smallRadius;
+            makeCircle(xc, yc, r, outputArr, width, height);
+        }
+    }
     //produce an output file
     if(oFlag == 1){
         FILE* oFile = fopen(output_file, "wb");
@@ -478,7 +511,6 @@ void cheese_filter(int height, int width, Pixel** inputArr, Pixel** outputArr, i
     int chunk_width = width / THREAD_COUNT;
     int left_offset = chunk_width * chunk;
     int right_offset = left_offset + chunk_width;
-    printf("left: %d, right: %d\n", left_offset, right_offset);
     //apply yellow tint
     for(i = 0; i < height; i++)
         for(j = left_offset; j < right_offset; j++){
@@ -490,48 +522,14 @@ void cheese_filter(int height, int width, Pixel** inputArr, Pixel** outputArr, i
             else outputArr[i][j].green = inputArr[i][j].green + 50;
             outputArr[i][j].blue = inputArr[i][j].blue;
         }
-    //determine smallest dimension of input
-    int smallest = 0;
-    if(width < height)
-        smallest = width;
-    else smallest = height;
-    //calculate hole data
-    int numHoles = smallest / 10;
-    int averageRadius = numHoles;
-    int largeRadius = averageRadius + averageRadius / 2;
-    int smallRadius = averageRadius - averageRadius / 2;
-    srand(time(0));
-    //draw average holes (50% of holes)
-    for(i = 0; i < numHoles / 2; i++) {
-        int xc = rand() % width;
-        int yc = rand() % height;
-        int r = averageRadius;
-        makeCircle(xc, yc, r, outputArr, width, height, left_offset, right_offset);
-    }
-    //draw large holes (25% of holes)
-    for(i = 0; i < numHoles / 4; i++) {
-        int xc = rand() % width;
-        int yc = rand() % height;
-        int r = largeRadius;
-        makeCircle(xc, yc, r, outputArr, width, height, left_offset, right_offset);
-    }
-    //draw small holes (25% of holes)
-    for(i = 0; i < numHoles / 4; i++) {
-        int xc = rand() % width;
-        int yc = rand() % height;
-        int r = smallRadius;
-        makeCircle(xc, yc, r, outputArr, width, height, left_offset, right_offset);
-    }
 }
 
-void makeCircle(int xc, int yc, int r, Pixel** pArr, int width, int height, int left_offset, int right_offset) {
+void makeCircle(int xc, int yc, int r, Pixel** pArr, int width, int height) {
     int y, x;
-    if(xc >= left_offset && xc < right_offset) {
-        for (y = -r; y <= r; y++)
-            for (x = -r; x <= r; x++)
-                if (x * x + y * y <= r * r)
-                    drawPixel(xc + x, yc + y, pArr, width, height);
-    }
+    for (y = -r; y <= r; y++)
+        for (x = -r; x <= r; x++)
+            if (x * x + y * y <= r * r)
+                drawPixel(xc + x, yc + y, pArr, width, height);
 }
 
 void drawPixel(int x, int y, Pixel** pArr, int width, int height){
