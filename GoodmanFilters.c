@@ -46,8 +46,6 @@ void draw_pixel(int x, int y, Pixel** pixel_array, int width, int height);
 ////////////////////////////////////////////////////////////////////////////////
 //MAIN PROGRAM CODE
 int main(int argc, char* argv[]){
-    pthread_t tid;
-    pthread_attr_t attr;
     int i, opt, length, arg_index = 0, i_flag = 0, o_flag = 0, f_flag = 0;
     char *input_file_name, *output_file_name, filter_type, **args;
     BMP_Header* input_bmp_header;
@@ -152,6 +150,8 @@ int main(int argc, char* argv[]){
     if(filter_type == 'b')
         //create blur box threads
         for(i = 0; i < THREAD_COUNT; i++) {
+            pthread_t tid;
+            pthread_attr_t attr;
             pthread_attr_init(&attr);
             pthread_create(&tid, &attr, blur_runner, &i);
             pthread_join(tid, NULL);
@@ -159,6 +159,8 @@ int main(int argc, char* argv[]){
     else {
         //create Swiss cheese threads
         for (i = 0; i < THREAD_COUNT; i++) {
+            pthread_t tid;
+            pthread_attr_t attr;
             pthread_attr_init(&attr);
             pthread_create(&tid, &attr, cheese_runner, &i);
             pthread_join(tid, NULL);
