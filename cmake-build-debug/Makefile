@@ -143,33 +143,6 @@ Module6/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Module6.dir/build.make CMakeFiles/Module6.dir/build
 .PHONY : Module6/fast
 
-BaseFilters.o: BaseFilters.c.o
-
-.PHONY : BaseFilters.o
-
-# target to build an object file
-BaseFilters.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Module6.dir/build.make CMakeFiles/Module6.dir/BaseFilters.c.o
-.PHONY : BaseFilters.c.o
-
-BaseFilters.i: BaseFilters.c.i
-
-.PHONY : BaseFilters.i
-
-# target to preprocess a source file
-BaseFilters.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Module6.dir/build.make CMakeFiles/Module6.dir/BaseFilters.c.i
-.PHONY : BaseFilters.c.i
-
-BaseFilters.s: BaseFilters.c.s
-
-.PHONY : BaseFilters.s
-
-# target to generate assembly for a file
-BaseFilters.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Module6.dir/build.make CMakeFiles/Module6.dir/BaseFilters.c.s
-.PHONY : BaseFilters.c.s
-
 GoodmanFilters.o: GoodmanFilters.c.o
 
 .PHONY : GoodmanFilters.o
@@ -206,9 +179,6 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... Module6"
-	@echo "... BaseFilters.o"
-	@echo "... BaseFilters.i"
-	@echo "... BaseFilters.s"
 	@echo "... GoodmanFilters.o"
 	@echo "... GoodmanFilters.i"
 	@echo "... GoodmanFilters.s"

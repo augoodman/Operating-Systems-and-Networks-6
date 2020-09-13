@@ -78,9 +78,6 @@
 				</MakeCommands>
 			</Target>
 		</Build>
-		<Unit filename="/home/andrew/CLionProjects/Module6/BaseFilters.c">
-			<Option target="Module6"/>
-		</Unit>
 		<Unit filename="/home/andrew/CLionProjects/Module6/BmpProcessor.h">
 			<Option target="Module6"/>
 		</Unit>

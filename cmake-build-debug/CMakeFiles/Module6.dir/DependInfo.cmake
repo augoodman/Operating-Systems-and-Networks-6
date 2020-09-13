@@ -4,7 +4,6 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_C
-  "/home/andrew/CLionProjects/Module6/BaseFilters.c" "/home/andrew/CLionProjects/Module6/cmake-build-debug/CMakeFiles/Module6.dir/BaseFilters.c.o"
   "/home/andrew/CLionProjects/Module6/GoodmanFilters.c" "/home/andrew/CLionProjects/Module6/cmake-build-debug/CMakeFiles/Module6.dir/GoodmanFilters.c.o"
   )
 set(CMAKE_C_COMPILER_ID "GNU")

@@ -1,5 +1,4 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/Module6.dir/BaseFilters.c.o"
   "CMakeFiles/Module6.dir/GoodmanFilters.c.o"
   "Module6"
   "Module6.pdb"
