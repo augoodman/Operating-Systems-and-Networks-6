@@ -2,7 +2,7 @@
 * File:   GoodmanFilters.c
 * Applies a blur box or Swiss cheese filter to BMP images.
 *
-* Completion time: (estimation of hours spent on this program)
+* Completion time: 12 hours
 *
 * @author Goodman, Acuna
 * @version 2020.09.10
@@ -19,9 +19,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 //MACRO DEFINITIONS
-#define BMP_HEADER_SIZE 14
-#define BMP_DIB_HEADER_SIZE 40
-#define MAXIMUM_IMAGE_SIZE 4096
 #define THREAD_COUNT 4
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -38,14 +35,13 @@ Stencil* stencil;
 
 ////////////////////////////////////////////////////////////////////////////////
 //FORWARD DECLARATIONS
-void sigint_target(int signum);
 void* blur_runner(void* param);
 void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** inputArr, Pixel** outputArr, int chunk);
+Pixel* blur_pixel(Stencil* stencil, Pixel* pixel, int numPixels);
 void* cheese_runner(void* param);
 void cheese_filter(int height, int width, Pixel** inputArr, Pixel** outputArr, int chunk);
 void makeCircle(int xc, int yc, int r, Pixel** pArr, int width, int height);
 void drawPixel(int x, int y, Pixel** pArr, int width, int height);
-Pixel* make_blurry_pixel(Stencil* stencil, Pixel* pixel, int numPixels);
 
 ////////////////////////////////////////////////////////////////////////////////
 //MAIN PROGRAM CODE
@@ -58,7 +54,6 @@ int main(int argc, char* argv[]){
     DIB_Header* input_dib_header;
     BMP_Header* output_bmp_header;
     DIB_Header* output_dib_header;
-
     while((opt = getopt(argc, argv, "i:o:f:")) != -1)
         //parse command line arguments
         switch(opt){
@@ -229,20 +224,23 @@ void* blur_runner(void* param){
 }
 
 void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** inputArr, Pixel** outputArr, int chunk) {
-    int i, j, k, left_padding = 0, right_padding = 0;
+    int i, j, k, left_offset, right_offset, left_padding = 0, right_padding = 0;
+    int remaining = width % THREAD_COUNT;
     int chunk_width = width / THREAD_COUNT;
-    int left_offset = chunk_width * chunk;
-    int right_offset = left_offset + chunk_width - 1;
-    if(i == 0){
+    left_offset = chunk_width * chunk;
+    if(chunk == 0){
+        right_offset = left_offset + chunk_width;
         chunk_width += 1;
         right_padding = 1;
     }
-    else if(i > 0 && i < THREAD_COUNT - 1){
+    else if(chunk > 0 && chunk < THREAD_COUNT - 1){
+        right_offset = left_offset + chunk_width;
         chunk_width += + 2;
         left_padding = -1;
         right_padding = 1;
     }
     else{
+        right_offset = left_offset + chunk_width + remaining;
         chunk_width += 1;
         left_padding = -1;
     }
@@ -274,7 +272,7 @@ void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** 
                 stencil->pixel[2][2].red = inputArr[i + 1][j + 1].red;
                 stencil->pixel[2][2].green = inputArr[i + 1][j + 1].green;
                 stencil->pixel[2][2].blue = inputArr[i + 1][j + 1].blue;
-                outputArr[0][0] = *make_blurry_pixel(stencil, pixel, 4);
+                outputArr[0][0] = *blur_pixel(stencil, pixel, 4);
             }
             //if pixel is upper right corner
             if(i == 0 && j == width - 1 && chunk == THREAD_COUNT - 1){
@@ -300,7 +298,7 @@ void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** 
                 stencil->pixel[2][1].red = inputArr[i + 1][j].red;
                 stencil->pixel[2][1].green = inputArr[i + 1][j].green;
                 stencil->pixel[2][1].blue = inputArr[i + 1][j].blue;
-                outputArr[0][width - 1] = *make_blurry_pixel(stencil, pixel, 4);
+                outputArr[0][width - 1] = *blur_pixel(stencil, pixel, 4);
             }
             //if pixel is bottom left corner
             if(i == height - 1 && j == 0 && chunk == 0){
@@ -326,7 +324,7 @@ void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** 
                 stencil->pixel[1][2].red = inputArr[i][j + 1].red;
                 stencil->pixel[1][2].green = inputArr[i][j + 1].green;
                 stencil->pixel[1][2].blue = inputArr[i][j + 1].blue;
-                outputArr[height - 1][0] = *make_blurry_pixel(stencil, pixel, 4);
+                outputArr[height - 1][0] = *blur_pixel(stencil, pixel, 4);
             }
             //if pixel is bottom right corner
             if(i == height - 1 && j == width - 1 && chunk == THREAD_COUNT - 1){
@@ -352,7 +350,7 @@ void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** 
                 stencil->pixel[1][1].red = inputArr[i][j].red;
                 stencil->pixel[1][1].green = inputArr[i][j].green;
                 stencil->pixel[1][1].blue = inputArr[i][j].blue;
-                outputArr[height - 1][width - 1] = *make_blurry_pixel(stencil, pixel, 4);
+                outputArr[height - 1][width - 1] = *blur_pixel(stencil, pixel, 4);
             }
             //if pixel is on the left edge
             if(i != 0 && i != height - 1 && j == 0 && chunk == 0) {
@@ -379,7 +377,7 @@ void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** 
                 stencil->pixel[2][2].red = inputArr[i + 1][j + 1].red;
                 stencil->pixel[2][2].green = inputArr[i + 1][j + 1].green;
                 stencil->pixel[2][2].blue = inputArr[i + 1][j + 1].blue;
-                outputArr[i][0] = *make_blurry_pixel(stencil, pixel, 6);
+                outputArr[i][0] = *blur_pixel(stencil, pixel, 6);
             }
             //if pixel is on the right edge
             if(i != 0 && i != height - 1 && j == width - 1 && chunk == THREAD_COUNT - 1) {
@@ -406,9 +404,9 @@ void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** 
                 stencil->pixel[2][1].red = inputArr[i + 1][j].red;
                 stencil->pixel[2][1].green = inputArr[i + 1][j].green;
                 stencil->pixel[2][1].blue = inputArr[i + 1][j].blue;
-                outputArr[i][width - 1] = *make_blurry_pixel(stencil, pixel, 6);
+                outputArr[i][width - 1] = *blur_pixel(stencil, pixel, 6);
             }
-            //if pixel is on upper edge
+            //if pixel is on the upper edge
             if(i == 0 && j != 0 && j != width - 1) {
                 for (k = 0; k < 3; k++) {
                     stencil->pixel[0][k].red = 0;
@@ -433,9 +431,9 @@ void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** 
                 stencil->pixel[2][2].red = inputArr[i + 1][j + 1].red;
                 stencil->pixel[2][2].green = inputArr[i + 1][j + 1].green;
                 stencil->pixel[2][2].blue = inputArr[i + 1][j + 1].blue;
-                outputArr[0][j] = *make_blurry_pixel(stencil, pixel, 6);
+                outputArr[0][j] = *blur_pixel(stencil, pixel, 6);
             }
-            //if pixel is on bottom edge
+            //if pixel is on the bottom edge
             if(i == height - 1 && j != 0 && j != width - 1) {
                 for (k = 0; k < 3; k++) {
                     stencil->pixel[2][k].red = 0;
@@ -460,9 +458,9 @@ void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** 
                 stencil->pixel[1][2].red = inputArr[i][j + 1].red;
                 stencil->pixel[1][2].green = inputArr[i][j + 1].green;
                 stencil->pixel[1][2].blue = inputArr[i][j + 1].blue;
-                outputArr[height - 1][j] = *make_blurry_pixel(stencil, pixel, 6);
+                outputArr[height - 1][j] = *blur_pixel(stencil, pixel, 6);
             }
-            //if pixel is not on border
+            //if pixel is not on the border
             if(i != 0 && i != height - 1 && j != 0 && j != width - 1) {
                 stencil->pixel[0][0].red = inputArr[i - 1][j - 1].red;
                 stencil->pixel[0][0].green = inputArr[i - 1][j - 1].green;
@@ -491,12 +489,26 @@ void blur_filter(Stencil* stencil, Pixel* pixel, int height, int width, Pixel** 
                 stencil->pixel[2][2].red = inputArr[i + 1][j + 1].red;
                 stencil->pixel[2][2].green = inputArr[i + 1][j + 1].green;
                 stencil->pixel[2][2].blue = inputArr[i + 1][j + 1].blue;
-                outputArr[i][j] = *make_blurry_pixel(stencil, pixel, 9);
+                outputArr[i][j] = *blur_pixel(stencil, pixel, 9);
             }
         }
     }
     free(pixel);
     free(stencil);
+}
+
+Pixel* blur_pixel(Stencil* stencil, Pixel* pixel, int numPixels) {
+    int i, j, rSum = 0, gSum = 0, bSum = 0;
+    for(i = 0; i < 3; i++)
+        for(j = 0; j < 3; j++){
+            rSum += stencil->pixel[i][j].red;
+            gSum += stencil->pixel[i][j].green;
+            bSum += stencil->pixel[i][j].blue;
+        }
+    pixel->red = rSum / numPixels;
+    pixel->green = gSum / numPixels;
+    pixel->blue = bSum / numPixels;
+    return pixel;
 }
 
 void* cheese_runner(void* param){
@@ -507,10 +519,14 @@ void* cheese_runner(void* param){
 }
 
 void cheese_filter(int height, int width, Pixel** inputArr, Pixel** outputArr, int chunk) {
-    int i, j;
+    int i, j, left_offset, right_offset;
+    int remaining = width % THREAD_COUNT;
     int chunk_width = width / THREAD_COUNT;
-    int left_offset = chunk_width * chunk;
-    int right_offset = left_offset + chunk_width;
+    left_offset = chunk_width * chunk;
+    if(chunk != THREAD_COUNT - 1)
+        right_offset = left_offset + chunk_width;
+    else
+        right_offset = left_offset + chunk_width + remaining;
     //apply yellow tint
     for(i = 0; i < height; i++)
         for(j = left_offset; j < right_offset; j++){
@@ -538,18 +554,4 @@ void drawPixel(int x, int y, Pixel** pArr, int width, int height){
         pArr[x][y].green = 0;
         pArr[x][y].blue = 0;
     }
-}
-
-Pixel* make_blurry_pixel(Stencil* stencil, Pixel* pixel, int numPixels) {
-    int i, j, rSum = 0, gSum = 0, bSum = 0;
-    for(i = 0; i < 3; i++)
-        for(j = 0; j < 3; j++){
-            rSum += stencil->pixel[i][j].red;
-            gSum += stencil->pixel[i][j].green;
-            bSum += stencil->pixel[i][j].blue;
-        }
-    pixel->red = rSum / numPixels;
-    pixel->green = gSum / numPixels;
-    pixel->blue = bSum / numPixels;
-    return pixel;
 }
